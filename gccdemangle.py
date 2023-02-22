@@ -51,7 +51,8 @@ Modifiers = {
     "C": "const",
     "V": "volatile",
     "P": "pointer",
-    "R": "reference",
+    "R": "reference"
+    #"T": "index"
     #"G": "struct",
     #"G": "name_length" # need to implement handling of this
 }
@@ -62,6 +63,14 @@ hasModifier,
 isPointer,
 isReference,
 typeModifier
+"""
+
+"""
+SymParam Dict:
+isPrimitive,
+nameLength,
+symName, # typename
+ModifierDict
 """
 
 def main():
@@ -77,6 +86,7 @@ def main():
     if symArgs.startswith('F'):
         types = symArgs.split("F")[1]
         pos = sym.index(types)
+        sym_args = []
         # this code needs to be rewritten to parse all parameters
         # then expand and generate the demangled symbol
         while pos < len(sym):
@@ -88,7 +98,6 @@ def main():
                 hasModifier = False
                 length = ""
                 structName = ""
-                print(len(sym), pos)
                 if len(sym) == pos:
                     break
                 typeModifier = Modifiers.get(sym[pos])
@@ -121,9 +130,28 @@ def main():
                     modifiers.append(modifierInfo)
                 else:
                     break
-            print(modifiers)
-            argType = ParamTypes.get(sym[pos])
-            param_index = -1
+            nameLength = ""
+            isPrimitive = False
+            if sym[pos].isdecimal() == True:
+                while True:
+                    if sym[pos].isdecimal() == False:
+                        break
+                    nameLength += sym[pos]
+                    pos += 1
+                iNameLength = int(nameLength, 10)
+                argType = sym[pos:pos+iNameLength]
+                pos += iNameLength
+            else:
+                argType = ParamTypes.get(sym[pos])
+                pos += 1
+                isPrimitive = True
+            symArg = {
+                "isPrimitive": isPrimitive,
+                "symName": argType,
+                "modifiers": modifiers
+            }
+            sym_args.append(symArg)
+            """param_index = -1
             if argType == None:
                 if sym[pos] == "T":
                     pos += 1
@@ -143,7 +171,20 @@ def main():
             elif len(sym) != pos + 1:
                 argType += ', '
             pos += 1
-            demangledSym = demangledSym + argType
+            demangledSym = demangledSym + argType"""
+    for i, arg in enumerate(sym_args):
+        argType = arg["symName"]
+        for modifier in arg["modifiers"]:
+            if modifier["isPointer"] == True:
+                argType += '*'
+            if modifier["isReference"] == True:
+                argType += '&'
+            if modifier["hasModifier"] == True:
+                if modifier["typeModifier"] != "pointer" and modifier["typeModifier"] != "reference":
+                    argType = modifier["typeModifier"] + ' ' + argType
+        if i + 1 != len(sym_args):
+            argType += ', '
+        demangledSym = demangledSym + argType
     demangledSym += ')'
     print(demangledSym)
          
